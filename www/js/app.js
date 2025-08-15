@@ -119,21 +119,24 @@
   }
 
   async function onMic() {
+    // पहले Jarvis बोले
+    await speak('I am Jarvis, how can I help you?', 'en-GB');
+
     heard.textContent = 'Listening…';
     try {
-      const ok = await ensurePermissions();
-      if (!ok) {
-        await speak('Microphone permission required');
-        return;
-      }
-      const matches = await startListening('en-IN'); // change to 'hi-IN' for Hindi default
-      const text = (matches && matches[0]) || '';
-      handleCommand(text);
+        const ok = await ensurePermissions();
+        if (!ok) {
+            await speak('Microphone permission required');
+            return;
+        }
+        const matches = await startListening('en-IN'); // 'hi-IN' अगर Hindi चाहिए
+        const text = (matches && matches[0]) || '';
+        handleCommand(text);
     } catch (e) {
-      log('Listen error: ' + e);
-      speak('Sorry, I could not hear you', 'en-IN');
+        log('Listen error: ' + e);
+        speak('Sorry, I could not hear you', 'en-IN');
     }
-  }
+}
 
   function onStop() {
     const plugin = window.plugins && window.plugins.speechRecognition;
