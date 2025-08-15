@@ -11,44 +11,6 @@
     logEl.textContent = (logEl.textContent + '\n' + msg).trim();
   };
 
-// Wake Word Continuous Listening
-function startWakeWordListener() {
-  if (!('webkitSpeechRecognition' in window)) {
-    log("Wake word not supported in this environment.");
-    return;
-  }
-
-  const wakeRec = new webkitSpeechRecognition();
-  wakeRec.continuous = true;
-  wakeRec.interimResults = false;
-  wakeRec.lang = "en-IN";
-
-  wakeRec.onresult = function (event) {
-    let transcript = event.results[event.results.length - 1][0].transcript.trim().toLowerCase();
-    log("Heard (wake): " + transcript);
-    if (transcript.includes("hey jarvis")) {
-      speak("Yes, how can I help you?", "en-GB");
-      onMic(); // start normal command listening
-    }
-  };
-
-  wakeRec.onerror = function (event) {
-    log("Wake word error: " + event.error);
-  };
-
-  wakeRec.onend = function () {
-    // auto-restart
-    wakeRec.start();
-  };
-
-  wakeRec.start();
-}
-
-window.addEventListener("load", function () {
-  startWakeWordListener();
-});
-
-
   // Simple TTS wrapper (Cordova plugin)
   async function speak(text, locale) {
     if (!text) return;
