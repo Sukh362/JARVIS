@@ -134,7 +134,7 @@
     } catch (e) {
         log('Listen error: ' + e);
         speak('Sorry, I could not hear you', 'en-IN');
-    
+    }
     {
     heard.textContent = 'Listening…';
     try {
