@@ -11,6 +11,49 @@
     logEl.textContent = (logEl.textContent + '\n' + msg).trim();
   };
 
+// App Launcher function
+function openApp(appName) {
+    const apps = {
+        "whatsapp": "com.whatsapp",
+        "youtube": "com.google.android.youtube",
+        "instagram": "com.instagram.android",
+        "facebook": "com.facebook.katana",
+        "telegram": "org.telegram.messenger"
+    };
+
+    const packageName = apps[appName.toLowerCase()];
+    if (packageName) {
+        if (window.plugins && window.plugins.launcher) {
+            window.plugins.launcher.launch({ packageName: packageName }, 
+                function() { speak(appName + " opened"); },
+                function() { speak("Failed to open " + appName); }
+            );
+        } else {
+            speak("Launcher plugin not found.");
+        }
+    } else {
+        speak("App not found in list.");
+    }
+}
+
+// Handle command
+function handleCommand(text) {
+    addReply("You: " + text);
+
+    if (text.startsWith("open ")) {
+        let appName = text.replace("open ", "").trim();
+        openApp(appName);
+    } else if (text.includes("time")) {
+        const now = new Date();
+        speak("The time is " + now.toLocaleTimeString());
+    } else if (text.includes("hello")) {
+        speak("Hello, I am Jarvis. How can I help you?");
+    } else {
+        speak("I am not sure about that.");
+    }
+}
+
+
   // Simple TTS wrapper (Cordova plugin)
   async function speak(text, locale) {
     if (!text) return;
