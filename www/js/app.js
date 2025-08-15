@@ -1,161 +1,79 @@
-(function(){
-  const micBtn = document.getElementById('micBtn');
-  const stopBtn = document.getElementById('stopBtn');
-  const runBtn = document.getElementById('runBtn');
-  const textCmd = document.getElementById('textCmd');
-  const heard = document.getElementById('heard');
-  const logEl = document.getElementById('log');
+// Flag for greeting
+let jarvisGreeted = false;
 
-  const log = (msg) => {
-    console.log(msg);
-    logEl.textContent = (logEl.textContent + '\n' + msg).trim();
-  };
-
-  // Simple TTS wrapper (Cordova plugin)
-  async function speak(text, locale) {
-    if (!text) return;
-    try {
-      if (window.TTS && TTS.speak) {
-        await TTS.speak({ text, locale: locale || 'en-IN', rate: 1.0 });
-      } else if ('speechSynthesis' in window) {
-        // Fallback for browser preview (not used in Cordova build)
-        const u = new SpeechSynthesisUtterance(text);
-        u.lang = locale || 'en-IN';
-        window.speechSynthesis.speak(u);
-      } else {
-        log('TTS not available');
-      }
-    } catch (e) {
-      log('TTS error: ' + e);
-    }
-  }
-
-  // Recognize voice using cordova-plugin-speechrecognition
-  function startListening(lang) {
-    return new Promise((resolve, reject) => {
-      const plugin = window.plugins && window.plugins.speechRecognition;
-      if (!plugin) {
-        log('SpeechRecognition plugin missing. Did you add cordova-plugin-speechrecognition?');
-        return reject(new Error('plugin-missing'));
-      }
-      plugin.startListening(
-        (matches) => resolve(matches),
-        (err) => reject(err),
-        {
-          language: lang || 'en-IN', // try 'hi-IN' for Hindi
-          matches: 1,
-          prompt: 'Speak your command…',
-          showPopup: true,
-          showPartial: false
-        }
-      );
-    });
-  }
-
-  async function ensurePermissions() {
-    const plugin = window.plugins && window.plugins.speechRecognition;
-    if (!plugin) return false;
-    return new Promise((resolve) => {
-      plugin.hasPermission((has) => {
-        if (has) return resolve(true);
-        plugin.requestPermission(() => resolve(true), () => resolve(false));
-      }, () => resolve(false));
-    });
-  }
-
-  function handleCommand(raw) {
-    const cmd = (raw || '').toLowerCase().trim();
-    heard.textContent = 'Heard: ' + cmd;
-    log('> ' + cmd);
-
-    // Basic intents
-    if (cmd.includes('open youtube') || cmd.includes('youtube kholo') || cmd.includes('youtube')) {
-      openLink('https://www.youtube.com/');
-      speak('Opening YouTube', 'en-IN');
-      return;
-    }
-
-    // search intent (English)
-    if (cmd.startsWith('search ') || cmd.startsWith('google ')) {
-      const q = cmd.replace(/^search\s+|^google\s+/,'').trim();
-      if (q) {
-        openLink('https://www.google.com/search?q=' + encodeURIComponent(q));
-        speak('Searching Google for ' + q, 'en-IN');
-        return;
-      }
-    }
-
-    // search intent (Hindi: "google par ... search karo")
-    if (cmd.includes('google par') && cmd.includes('search')) {
-      const q = cmd.replace(/^.*google par\s*/,'').replace(/\s*search.*$/,'').trim();
-      if (q) {
-        openLink('https://www.google.com/search?q=' + encodeURIComponent(q));
-        speak('Google par ' + q + ' search kar raha hoon', 'hi-IN');
-        return;
-      }
-    }
-
-    if (cmd.includes('time') || cmd.includes('samay')) {
-      const now = new Date();
-      const say = now.toLocaleTimeString();
-      speak('Time is ' + say, 'en-IN');
-      return;
-    }
-
-    // default
-    speak('Sorry, I did not understand.', 'en-IN');
-  }
-
-  function openLink(url) {
-    try {
-      if (window.cordova && cordova.InAppBrowser) {
-        cordova.InAppBrowser.open(url, '_system');
-      } else {
-        window.open(url, '_blank');
-      }
-    } catch (e) {
-      window.open(url, '_blank');
-    }
-  }
-
-async function onMic() {
-    // अगर अभी तक greet नहीं किया है
+// Run once when device is ready
+document.addEventListener("deviceready", function () {
     if (!jarvisGreeted) {
-        await speak('I am Jarvis, how can I help you?', 'en-GB');
-        jarvisGreeted = true; // अब दोबारा greeting नहीं होगी
+        speak('I am Jarvis, how can I help you?', 'en-GB');
+        jarvisGreeted = true;
+    }
+}, false);
+
+// Mic button click
+document.getElementById("micButton").addEventListener("click", function () {
+    requestMicPermissionAndListen();
+});
+
+// Request mic permission
+function requestMicPermissionAndListen() {
+    if (!window.plugins || !window.plugins.speechRecognition) {
+        console.error("SpeechRecognition plugin not available.");
+        speak("Speech recognition is not available on this device", 'en-GB');
+        return;
     }
 
-    heard.textContent = 'Listening…';
-    try {
-        const ok = await ensurePermissions();
-        if (!ok) {
-            await speak('Microphone permission required');
-            return;
+    window.plugins.speechRecognition.hasPermission(function (isGranted) {
+        if (!isGranted) {
+            window.plugins.speechRecognition.requestPermission(function () {
+                startListening();
+            }, function (err) {
+                console.error("Permission denied:", err);
+                speak("Microphone permission denied", 'en-GB');
+            });
+        } else {
+            startListening();
         }
-        const matches = await startListening('en-IN'); // 'hi-IN' for Hindi
-        const text = (matches && matches[0]) || '';
-        handleCommand(text);
-    } catch (e) {
-        log('Listen error: ' + e);
-        speak('Sorry, I could not hear you', 'en-IN');
-    }
+    }, function (err) {
+        console.error("Permission check failed:", err);
+    });
 }
 
+// Start listening
+function startListening() {
+    window.plugins.speechRecognition.startListening(function (matches) {
+        console.log('User said:', matches);
+        if (matches.length > 0) {
+            let text = matches[0];
+            handleCommand(text); // तुम्हारे app का existing command handler
+        }
+    }, function (err) {
+        console.error("Listening error:", err);
+        speak("Sorry, I could not hear you", 'en-GB');
+    }, {
+        language: "en-IN", // 'hi-IN' अगर Hindi चाहिए
+        matches: 1,
+        prompt: "Listening...",
+        showPopup: true
+    });
+}
 
-  function onStop() {
-    const plugin = window.plugins && window.plugins.speechRecognition;
-    if (plugin && plugin.stopListening) plugin.stopListening(()=>{},()=>{});
-  }
-
-  function onRun() {
-    handleCommand(textCmd.value);
-  }
-
-  document.addEventListener('deviceready', () => {
-    log('Device ready.');
-  }, false);
-
-  micBtn.addEventListener('click', onMic);
-  stopBtn.addEventListener('click', onStop);
-  runBtn.addEventListener('click', onRun);
-})();
+// Speak function (TTS)
+function speak(text, locale = 'en-GB') {
+    return new Promise((resolve, reject) => {
+        if (window.TTS) {
+            window.TTS.speak({
+                text: text,
+                locale: locale,
+                rate: 1.0
+            }, resolve, reject);
+        } else if ('speechSynthesis' in window) {
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = locale;
+            speechSynthesis.speak(utterance);
+            resolve();
+        } else {
+            console.warn("No TTS engine available");
+            resolve();
+        }
+    });
+}
