@@ -11,6 +11,16 @@
     logEl.textContent = (logEl.textContent + '\n' + msg).trim();
   };
 
+  function playSong() {
+   var audio = document.getElementById("myAudio");
+   audio.play();
+}
+function shuffleAll(songsArray){
+   var randomIndex = Math.floor(Math.random() * songsArray.length);
+   document.getElementById("myAudio").src = songsArray[randomIndex];
+   audio.play();
+}
+  
 // App Launcher function
 function openApp(appName) {
     const apps = {
