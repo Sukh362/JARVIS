@@ -1,0 +1,21 @@
+{
+  "name": "jarvis-app",
+  "version": "1.0.0",
+  "displayName": "Jarvis",
+  "cordova": {
+    "plugins": {
+      "cordova-plugin-speechrecognition": {},
+      "cordova-plugin-tts": {},
+      "cordova-plugin-inappbrowser": {}
+    },
+    "platforms": [
+      "android"
+    ]
+  },
+  "dependencies": {
+    "cordova-android": "^11.0.0",
+    "cordova-plugin-speechrecognition": "^1.2.0",
+    "cordova-plugin-tts": "^0.2.3",
+    "cordova-plugin-inappbrowser": "^5.0.0"
+  }
+}
