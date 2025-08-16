@@ -20,6 +20,26 @@ function shuffleAll(songsArray){
    document.getElementById("myAudio").src = songsArray[randomIndex];
    audio.play();
 }
+
+  navigator.getBattery().then(function(battery) {
+    function updateBatteryStatus() {
+        let level = Math.floor(battery.level * 100); // 0-100
+        console.log("Battery level: " + level + "%");
+        speakBattery(level);
+    }
+
+    // Listen for battery changes
+    battery.addEventListener('levelchange', updateBatteryStatus);
+    
+    // Initial call
+    updateBatteryStatus();
+});
+
+function speakBattery(level) {
+    let msg = "Aapke phone me " + level + " percent battery bachi hai";
+    let speech = new SpeechSynthesisUtterance(msg);
+    window.speechSynthesis.speak(speech);
+}
   
 // App Launcher function
 function openApp(appName) {
