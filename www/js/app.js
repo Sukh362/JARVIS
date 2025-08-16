@@ -11,7 +11,9 @@
     logEl.textContent = (logEl.textContent + '\n' + msg).trim();
   };
 
-  // Simple TTS wrapper (Cordova plugin)
+  // Flag to check first mic tap
+  let firstTap = true;
+
   async function speak(text, locale) {
     if (!text) return;
     try {
@@ -29,7 +31,6 @@
     }
   }
 
-  // Recognize voice using cordova-plugin-speechrecognition
   function startListening(lang) {
     return new Promise((resolve, reject) => {
       const plugin = window.plugins && window.plugins.speechRecognition;
@@ -41,7 +42,7 @@
         (matches) => resolve(matches),
         (err) => reject(err),
         {
-          language: lang || 'en-IN', // try 'hi-IN' for Hindi
+          language: lang || 'en-IN',
           matches: 1,
           prompt: 'Speak your command…',
           showPopup: true,
@@ -67,9 +68,7 @@
     heard.textContent = 'Heard: ' + cmd;
     log('> ' + cmd);
 
-    // -------------------------
-    // Battery Check Feature
-    // -------------------------
+    // Battery check
     if (cmd.includes('battery') || cmd.includes('kitni battery')) {
       if(navigator.getBattery){
         navigator.getBattery().then(function(battery){
@@ -82,13 +81,14 @@
       return;
     }
 
-    // Basic intents
+    // Open YouTube
     if (cmd.includes('open youtube') || cmd.includes('youtube kholo') || cmd.includes('youtube')) {
       openLink('https://www.youtube.com/');
       speak('Opening YouTube', 'en-IN');
       return;
     }
 
+    // Search Google English
     if (cmd.startsWith('search ') || cmd.startsWith('google ')) {
       const q = cmd.replace(/^search\s+|^google\s+/,'').trim();
       if (q) {
@@ -98,6 +98,7 @@
       }
     }
 
+    // Search Google Hindi
     if (cmd.includes('google par') && cmd.includes('search')) {
       const q = cmd.replace(/^.*google par\s*/,'').replace(/\s*search.*$/,'').trim();
       if (q) {
@@ -107,6 +108,7 @@
       }
     }
 
+    // Time
     if (cmd.includes('time') || cmd.includes('samay')) {
       const now = new Date();
       const say = now.toLocaleTimeString();
@@ -114,7 +116,7 @@
       return;
     }
 
-    // default
+    // Default
     speak('Sorry, I did not understand.', 'en-IN');
   }
 
@@ -131,6 +133,12 @@
   }
 
   async function onMic() {
+    // First tap greeting
+    if(firstTap){
+      speak('I am Jarvis, how can I help you?', 'en-IN');
+      firstTap = false;
+    }
+
     heard.textContent = 'Listening…';
     try {
       const ok = await ensurePermissions();
