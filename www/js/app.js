@@ -11,217 +11,97 @@
     logEl.textContent = (logEl.textContent + '\n' + msg).trim();
   };
 
-  function playSong() {
-   var audio = document.getElementById("myAudio");
-   audio.play();
+          // =====================
+// Jarvis App.js Full Integration
+// =====================
+
+// ---------------------
+// Voice Recognition Setup
+// ---------------------
+var recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+recognition.lang = 'hi-IN'; // Hindi
+recognition.continuous = false;
+
+// ---------------------
+// Audio / Music Setup
+// ---------------------
+var songs = [
+    "https://www.example.com/song1.mp3",
+    "https://www.example.com/song2.mp3",
+    "https://www.example.com/song3.mp3"
+];
+var audio = document.getElementById("myAudio");
+
+// ---------------------
+// Shuffle & Play Music
+// ---------------------
+function shuffleAll() {
+    var randomIndex = Math.floor(Math.random() * songs.length);
+    audio.src = songs[randomIndex];
+    audio.play();
+    speakText("Ab music baj raha hai: " + songs[randomIndex].split("/").pop());
 }
-function shuffleAll(songsArray){
-   var randomIndex = Math.floor(Math.random() * songsArray.length);
-   document.getElementById("myAudio").src = songsArray[randomIndex];
-   audio.play();
-}
 
-  navigator.getBattery().then(function(battery) {
-    function updateBatteryStatus() {
-        let level = Math.floor(battery.level * 100); // 0-100
-        console.log("Battery level: " + level + "%");
-        speakBattery(level);
-    }
-
-    // Listen for battery changes
-    battery.addEventListener('levelchange', updateBatteryStatus);
-    
-    // Initial call
-    updateBatteryStatus();
-});
-
-function speakBattery(level) {
-    let msg = "Aapke phone me " + level + " percent battery bachi hai";
+// ---------------------
+// Text-to-Speech Function
+// ---------------------
+function speakText(msg) {
     let speech = new SpeechSynthesisUtterance(msg);
     window.speechSynthesis.speak(speech);
 }
-  
-// App Launcher function
-function openApp(appName) {
-    const apps = {
-        "whatsapp": "com.whatsapp",
-        "youtube": "com.google.android.youtube",
-        "instagram": "com.instagram.android",
-        "facebook": "com.facebook.katana",
-        "telegram": "org.telegram.messenger"
-    };
 
-    const packageName = apps[appName.toLowerCase()];
-    if (packageName) {
-        if (window.plugins && window.plugins.launcher) {
-            window.plugins.launcher.launch({ packageName: packageName }, 
-                function() { speak(appName + " opened"); },
-                function() { speak("Failed to open " + appName); }
-            );
-        } else {
-            speak("Launcher plugin not found.");
-        }
-    } else {
-        speak("App not found in list.");
-    }
+// ---------------------
+// Battery Info Function
+// ---------------------
+function speakBattery(level) {
+    let msg = "Aapke phone me " + level + " percent battery bachi hai";
+    speakText(msg);
 }
 
-// Handle command
-function handleCommand(text) {
-    addReply("You: " + text);
-
-    if (text.startsWith("open ")) {
-        let appName = text.replace("open ", "").trim();
-        openApp(appName);
-    } else if (text.includes("time")) {
-        const now = new Date();
-        speak("The time is " + now.toLocaleTimeString());
-    } else if (text.includes("hello")) {
-        speak("Hello, I am Jarvis. How can I help you?");
-    } else {
-        speak("I am not sure about that.");
-    }
+function getBatteryStatus() {
+    navigator.getBattery().then(function(battery) {
+        let level = Math.floor(battery.level * 100);
+        speakBattery(level);
+    });
 }
 
+// ---------------------
+// Voice Command Handler
+// ---------------------
+recognition.onresult = function(event) {
+    var command = event.results[0][0].transcript.toLowerCase();
 
-  // Simple TTS wrapper (Cordova plugin)
-  async function speak(text, locale) {
-    if (!text) return;
-    try {
-      if (window.TTS && TTS.speak) {
-        await TTS.speak({ text, locale: locale || 'en-IN', rate: 1.0 });
-      } else if ('speechSynthesis' in window) {
-        // Fallback for browser preview (not used in Cordova build)
-        const u = new SpeechSynthesisUtterance(text);
-        u.lang = locale || 'en-IN';
-        window.speechSynthesis.speak(u);
-      } else {
-        log('TTS not available');
-      }
-    } catch (e) {
-      log('TTS error: ' + e);
+    // 🔋 Battery Command
+    if(command.includes("battery") || command.includes("kitni battery")) {
+        getBatteryStatus();
     }
-  }
-
-  // Recognize voice using cordova-plugin-speechrecognition
-  function startListening(lang) {
-    return new Promise((resolve, reject) => {
-      const plugin = window.plugins && window.plugins.speechRecognition;
-      if (!plugin) {
-        log('SpeechRecognition plugin missing. Did you add cordova-plugin-speechrecognition?');
-        return reject(new Error('plugin-missing'));
-      }
-      plugin.startListening(
-        (matches) => resolve(matches),
-        (err) => reject(err),
-        {
-          language: lang || 'en-IN', // try 'hi-IN' for Hindi
-          matches: 1,
-          prompt: 'Speak your command…',
-          showPopup: true,
-          showPartial: false
-        }
-      );
-    });
-  }
-
-  async function ensurePermissions() {
-    const plugin = window.plugins && window.plugins.speechRecognition;
-    if (!plugin) return false;
-    return new Promise((resolve) => {
-      plugin.hasPermission((has) => {
-        if (has) return resolve(true);
-        plugin.requestPermission(() => resolve(true), () => resolve(false));
-      }, () => resolve(false));
-    });
-  }
-
-  function handleCommand(raw) {
-    const cmd = (raw || '').toLowerCase().trim();
-    heard.textContent = 'Heard: ' + cmd;
-    log('> ' + cmd);
-
-    // Basic intents
-    if (cmd.includes('open youtube') || cmd.includes('youtube kholo') || cmd.includes('youtube')) {
-      openLink('https://www.youtube.com/');
-      speak('Opening YouTube', 'en-IN');
-      return;
+    // 🎵 Shuffle / Play Music
+    else if(command.includes("play music") || command.includes("shuffle all")) {
+        shuffleAll();
     }
-
-    // search intent (English)
-    if (cmd.startsWith('search ') || cmd.startsWith('google ')) {
-      const q = cmd.replace(/^search\s+|^google\s+/,'').trim();
-      if (q) {
-        openLink('https://www.google.com/search?q=' + encodeURIComponent(q));
-        speak('Searching Google for ' + q, 'en-IN');
-        return;
-      }
+    // 👋 Jarvis Greeting Example
+    else if(command.includes("hello") || command.includes("namaste")) {
+        speakText("Namaste! Main aapki kaise madad kar sakta hoon?");
     }
-
-    // search intent (Hindi: "google par ... search karo")
-    if (cmd.includes('google par') && cmd.includes('search')) {
-      const q = cmd.replace(/^.*google par\s*/,'').replace(/\s*search.*$/,'').trim();
-      if (q) {
-        openLink('https://www.google.com/search?q=' + encodeURIComponent(q));
-        speak('Google par ' + q + ' search kar raha hoon', 'hi-IN');
-        return;
-      }
+    // 🌐 Open YouTube Example
+    else if(command.includes("open youtube")) {
+        window.open("https://www.youtube.com", "_blank");
+        speakText("YouTube khol diya");
     }
+    // ❌ Add more Jarvis commands here as needed
+};
 
-    if (cmd.includes('time') || cmd.includes('samay')) {
-      const now = new Date();
-      const say = now.toLocaleTimeString();
-      speak('Time is ' + say, 'en-IN');
-      return;
-    }
+// ---------------------
+// Start Listening Function
+// ---------------------
+function startListening() {
+    recognition.start();
+}
 
-    // default
-    speak('Sorry, I did not understand.', 'en-IN');
-  }
-
-  function openLink(url) {
-    try {
-      if (window.cordova && cordova.InAppBrowser) {
-        cordova.InAppBrowser.open(url, '_system');
-      } else {
-        window.open(url, '_blank');
-      }
-    } catch (e) {
-      window.open(url, '_blank');
-    }
-  }
-
-  async function onMic() {
-    heard.textContent = 'Listening…';
-    try {
-      const ok = await ensurePermissions();
-      if (!ok) {
-        await speak('Microphone permission required');
-        return;
-      }
-      const matches = await startListening('en-IN'); // change to 'hi-IN' for Hindi default
-      const text = (matches && matches[0]) || '';
-      handleCommand(text);
-    } catch (e) {
-      log('Listen error: ' + e);
-      speak('Sorry, I could not hear you', 'en-IN');
-    }
-  }
-
-  function onStop() {
-    const plugin = window.plugins && window.plugins.speechRecognition;
-    if (plugin && plugin.stopListening) plugin.stopListening(()=>{},()=>{});
-  }
-
-  function onRun() {
-    handleCommand(textCmd.value);
-  }
-
-  document.addEventListener('deviceready', () => {
-    log('Device ready.');
-  }, false);
-
-  micBtn.addEventListener('click', onMic);
-  stopBtn.addEventListener('click', onStop);
-  runBtn.addEventListener('click', onRun);
-})();
+// ---------------------
+// Auto Start on Page Load
+// ---------------------
+window.onload = function() {
+    startListening();
+};
+                                 
