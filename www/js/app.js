@@ -11,7 +11,6 @@
     logEl.textContent = (logEl.textContent + '\n' + msg).trim();
   };
 
-  // Flag to check first mic tap
   let firstTap = true;
 
   async function speak(text, locale) {
@@ -35,7 +34,7 @@
     return new Promise((resolve, reject) => {
       const plugin = window.plugins && window.plugins.speechRecognition;
       if (!plugin) {
-        log('SpeechRecognition plugin missing. Did you add cordova-plugin-speechrecognition?');
+        log('SpeechRecognition plugin missing.');
         return reject(new Error('plugin-missing'));
       }
       plugin.startListening(
@@ -68,7 +67,9 @@
     heard.textContent = 'Heard: ' + cmd;
     log('> ' + cmd);
 
-    // Battery check
+    // -------------------------
+    // Battery Check
+    // -------------------------
     if (cmd.includes('battery') || cmd.includes('kitni battery')) {
       if(navigator.getBattery){
         navigator.getBattery().then(function(battery){
@@ -81,14 +82,24 @@
       return;
     }
 
-    // Open YouTube
+    // -------------------------
+    // Open App Feature
+    // -------------------------
+    if(cmd.startsWith('open ')){
+      const appName = cmd.replace('open ','').trim();
+      openApp(appName);
+      return;
+    }
+
+    // -------------------------
+    // Open YouTube / Google Search
+    // -------------------------
     if (cmd.includes('open youtube') || cmd.includes('youtube kholo') || cmd.includes('youtube')) {
       openLink('https://www.youtube.com/');
       speak('Opening YouTube', 'en-IN');
       return;
     }
 
-    // Search Google English
     if (cmd.startsWith('search ') || cmd.startsWith('google ')) {
       const q = cmd.replace(/^search\s+|^google\s+/,'').trim();
       if (q) {
@@ -98,7 +109,6 @@
       }
     }
 
-    // Search Google Hindi
     if (cmd.includes('google par') && cmd.includes('search')) {
       const q = cmd.replace(/^.*google par\s*/,'').replace(/\s*search.*$/,'').trim();
       if (q) {
@@ -132,8 +142,50 @@
     }
   }
 
+  // -------------------------
+  // Open App Function
+  // -------------------------
+  function openApp(appName){
+    if(!window.appAvailability){
+      speak('App availability plugin not installed', 'en-IN');
+      return;
+    }
+
+    // Mapping app name to package ids (Android)
+    const apps = {
+      'whatsapp': 'com.whatsapp',
+      'instagram': 'com.instagram.android',
+      'facebook': 'com.facebook.katana',
+      'youtube': 'com.google.android.youtube',
+      'gmail': 'com.google.android.gm',
+      'maps': 'com.google.android.apps.maps'
+      // Add more apps as needed
+    };
+
+    const packageId = apps[appName.toLowerCase()];
+    if(!packageId){
+      speak('App not found', 'en-IN');
+      return;
+    }
+
+    appAvailability.check(
+      packageId, 
+      function() { 
+        // App installed
+        if(window.cordova && cordova.InAppBrowser){
+          cordova.InAppBrowser.open('intent://#Intent;package='+packageId+';end', '_system');
+        } else {
+          speak('Cannot open app in browser', 'en-IN');
+        }
+      },
+      function() { 
+        // App not installed
+        speak('App not found', 'en-IN');
+      }
+    );
+  }
+
   async function onMic() {
-    // First tap greeting
     if(firstTap){
       speak('I am Jarvis, how can I help you?', 'en-IN');
       firstTap = false;
