@@ -83,7 +83,7 @@
     }
 
     // -------------------------
-    // Open App Feature
+    // Open App Fallback (Mobile-friendly)
     // -------------------------
     if(cmd.startsWith('open ')){
       const appName = cmd.replace('open ','').trim();
@@ -143,15 +143,9 @@
   }
 
   // -------------------------
-  // Open App Function
+  // Open App Function (Fallback)
   // -------------------------
   function openApp(appName){
-    if(!window.appAvailability){
-      speak('App availability plugin not installed', 'en-IN');
-      return;
-    }
-
-    // Mapping app name to package ids (Android)
     const apps = {
       'whatsapp': 'com.whatsapp',
       'instagram': 'com.instagram.android',
@@ -159,30 +153,21 @@
       'youtube': 'com.google.android.youtube',
       'gmail': 'com.google.android.gm',
       'maps': 'com.google.android.apps.maps'
-      // Add more apps as needed
     };
 
     const packageId = apps[appName.toLowerCase()];
     if(!packageId){
-      speak('App not found', 'en-IN');
-      return;
+        speak('App not found', 'en-IN');
+        return;
     }
 
-    appAvailability.check(
-      packageId, 
-      function() { 
-        // App installed
-        if(window.cordova && cordova.InAppBrowser){
-          cordova.InAppBrowser.open('intent://#Intent;package='+packageId+';end', '_system');
-        } else {
-          speak('Cannot open app in browser', 'en-IN');
-        }
-      },
-      function() { 
-        // App not installed
+    // Fallback: try to open via intent URL
+    try{
+        window.location.href = 'intent://#Intent;package=' + packageId + ';end';
+        speak('Opening ' + appName, 'en-IN');
+    }catch(e){
         speak('App not found', 'en-IN');
-      }
-    );
+    }
   }
 
   async function onMic() {
@@ -224,4 +209,4 @@
   stopBtn.addEventListener('click', onStop);
   runBtn.addEventListener('click', onRun);
 })();
-    
+                      
