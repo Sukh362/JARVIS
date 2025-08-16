@@ -18,7 +18,6 @@
       if (window.TTS && TTS.speak) {
         await TTS.speak({ text, locale: locale || 'en-IN', rate: 1.0 });
       } else if ('speechSynthesis' in window) {
-        // Fallback for browser preview (not used in Cordova build)
         const u = new SpeechSynthesisUtterance(text);
         u.lang = locale || 'en-IN';
         window.speechSynthesis.speak(u);
@@ -68,6 +67,21 @@
     heard.textContent = 'Heard: ' + cmd;
     log('> ' + cmd);
 
+    // -------------------------
+    // Battery Check Feature
+    // -------------------------
+    if (cmd.includes('battery') || cmd.includes('kitni battery')) {
+      if(navigator.getBattery){
+        navigator.getBattery().then(function(battery){
+          let level = Math.floor(battery.level * 100);
+          speak('Aapke phone me ' + level + ' percent battery bachi hai', 'hi-IN');
+        });
+      } else {
+        speak('Battery info is not available on this device', 'hi-IN');
+      }
+      return;
+    }
+
     // Basic intents
     if (cmd.includes('open youtube') || cmd.includes('youtube kholo') || cmd.includes('youtube')) {
       openLink('https://www.youtube.com/');
@@ -75,7 +89,6 @@
       return;
     }
 
-    // search intent (English)
     if (cmd.startsWith('search ') || cmd.startsWith('google ')) {
       const q = cmd.replace(/^search\s+|^google\s+/,'').trim();
       if (q) {
@@ -85,7 +98,6 @@
       }
     }
 
-    // search intent (Hindi: "google par ... search karo")
     if (cmd.includes('google par') && cmd.includes('search')) {
       const q = cmd.replace(/^.*google par\s*/,'').replace(/\s*search.*$/,'').trim();
       if (q) {
@@ -152,3 +164,4 @@
   stopBtn.addEventListener('click', onStop);
   runBtn.addEventListener('click', onRun);
 })();
+    
